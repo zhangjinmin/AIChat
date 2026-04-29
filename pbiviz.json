@@ -1,0 +1,26 @@
+{
+  "visual": {
+    "name": "aIChatVisual",
+    "displayName": "AIChatVisual",
+    "guid": "aIChatVisual0333A750533B4345A711681B3299E8FC",
+    "visualClassName": "Visual",
+    "version": "2.4.6.0",
+    "description": "基于大模型的 Power BI 智能分析助手",
+    "supportUrl": "https://github.com/zhangjinmin",
+    "gitHubUrl": "https://github.com/zhangjinmin"
+  },
+  "apiVersion": "5.3.0",
+  "author": {
+    "name": "JM@IN",
+    "email": "zhang@jinm.in"
+  },
+  "assets": {
+    "icon": "assets/icon.png"
+  },
+  "externalJS": null,
+  "style": "style/visual.less",
+  "capabilities": "capabilities.json",
+  "dependencies": null,
+  "stringResources": [],
+  "version": "1.0.0.0"
+}

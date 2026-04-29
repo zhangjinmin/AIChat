@@ -1,0 +1,97 @@
+{
+  "dataRoles": [
+    { "displayName": "业务数据 (拖入维度或度量值)", "name": "businessData", "kind": "GroupingOrMeasure" },
+    { "displayName": "系统提示词 (拖入文本度量值)", "name": "systemPrompt", "kind": "Measure" },
+    { "displayName": "快捷指令 (拖入度量值:名称即按钮名)", "name": "quickCommands", "kind": "Measure" },
+    { "displayName": "界面说明 (拖入文本度量值)", "name": "instructions", "kind": "Measure" },
+    { "displayName": "全局大模型配置 (拖入JSON度量值)", "name": "globalConfig", "kind": "Measure" }
+  ],
+  "dataViewMappings": [
+    {
+      "conditions": [
+        {
+          "businessData": { "min": 0, "max": 50 },
+          "systemPrompt": { "min": 0, "max": 10 },
+          "quickCommands": { "min": 0, "max": 10 },
+          "instructions": { "min": 0, "max": 1 },
+          "globalConfig": { "min": 0, "max": 1 }
+        }
+      ],
+      "table": {
+        "rows": {
+          "select": [
+            { "bind": { "to": "businessData" } },
+            { "bind": { "to": "systemPrompt" } },
+            { "bind": { "to": "quickCommands" } },
+            { "bind": { "to": "instructions" } },
+            { "bind": { "to": "globalConfig" } }
+          ],
+          "dataReductionAlgorithm": {
+            "window": {
+              "count": 300000
+            }
+          }
+        }
+      }
+    }
+  ],
+  "objects": {
+    "aiConfig": {
+      "displayName": "大模型配置",
+      "properties": {
+        "baseUrl": { "displayName": "API Base URL", "type": { "text": true } },
+        "apiKey": { "displayName": "API Key", "type": { "text": true } },
+        "modelName": { "displayName": "模型名称", "type": { "text": true } }
+      }
+    },
+    "uiConfig": {
+      "displayName": "界面设置",
+      "properties": {
+        "botName": { "displayName": "AI 助手名称", "type": { "text": true } },
+        "themeColor": { "displayName": "主题颜色", "type": { "fill": { "solid": { "color": true } } } },
+        "showAutoInsight": { "displayName": "显示自动洞察按钮", "type": { "bool": true } },
+        "autoInsightName": { "displayName": "自动洞察按钮名称", "type": { "text": true } },
+        "autoInsightPrompt": { "displayName": "自动洞察提示词", "type": { "text": true } }
+      }
+    },
+    "moduleSettings": {
+      "displayName": "AI 模块开关",
+      "properties": {
+        "enableDataInsight": {
+          "displayName": "启用 数据洞察 模块",
+          "type": { "bool": true }
+        },
+        "enableDaxCopilot": {
+          "displayName": "启用 DAX 助手 模块",
+          "type": { "bool": true }
+        },
+        "enableDebugMode": {
+          "displayName": "启用 显示流转明细",
+          "type": { "bool": true }
+        },
+        "defaultPrivacyMode": {
+          "displayName": "默认数据隐私模式",
+          "type": {
+            "enumeration": [
+              { "value": "off", "displayName": "关闭 (全明文)" },
+              { "value": "semi_text", "displayName": "关键隐私 (敏感实体映射)" },
+              { "value": "full_text", "displayName": "全文本隐私 (所有文本替换)" },
+              { "value": "strict", "displayName": "严格隐私 (文本替换+数字混淆)" }
+            ]
+          }
+        },
+        "restrictDomain": {
+          "displayName": "启用 闲聊防浪导护栏",
+          "description": "开启后，AI 将拒绝回答与当前业务数据无关的问题（如查天气、闲聊）",
+          "type": { "bool": true }
+        }
+      }
+    }
+  },
+  "privileges": [
+    { "name": "WebAccess", "essential": true, "parameters": [ "*" ] },
+    { "name": "ExportContent", "essential": true } 
+  ],
+  "supportsLandingPage": true,
+  "supportsEmptyDataView": true
+}
