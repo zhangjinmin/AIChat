@@ -6,7 +6,11 @@ export interface QuickCommand {
 export interface ChatProps {
     baseSystemPrompt: string;
     customSystemPrompt: string;
-    businessData: string;
+    grandTotalText?: string;
+    rawTableData: any[];
+    dimensionCols: string[];
+    metricCols: string[];
+    blacklistCols: string[];
     quickCommands: QuickCommand[];
     instructions?: string;
     baseUrl: string;
@@ -22,6 +26,7 @@ export interface ChatProps {
     enableDaxCopilot?: boolean;
     enableDebugMode?: boolean;
     defaultPrivacyMode: "off" | "semi_text" | "full_text" | "strict";
+    allowInteractiveDims: boolean;
     restrictDomain?: boolean;
 }
 export declare const ChatApp: React.FC<ChatProps>;

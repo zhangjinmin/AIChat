@@ -1,5 +1,5 @@
 {
-		"version": "2.4.6.0",
+		"version": "2.5.0.0",
 		"author": {"name":"JM@IN","email":"zhang@jinm.in"},
 		"resources": [
 			{
@@ -8,7 +8,7 @@
 				"file": "resources/aIChatVisual0333A750533B4345A711681B3299E8FC.pbiviz.json"
 			}
 		],
-		"visual": {"name":"aIChatVisual","displayName":"AIChatVisual","guid":"aIChatVisual0333A750533B4345A711681B3299E8FC","visualClassName":"Visual","version":"2.4.6.0","description":"基于大模型的 Power BI 智能分析助手","supportUrl":"https://github.com/zhangjinmin","gitHubUrl":"https://github.com/zhangjinmin"},
+		"visual": {"name":"aIChatVisual","displayName":"AIChatVisual","guid":"aIChatVisual0333A750533B4345A711681B3299E8FC","visualClassName":"Visual","version":"2.5.0.0","description":"基于大模型的 Power BI 智能分析助手","supportUrl":"https://github.com/zhangjinmin","gitHubUrl":"https://github.com/zhangjinmin"},
 		"metadata": {
 			"pbivizjson": {
 				"resourceId": "rId0"

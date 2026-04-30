@@ -12,13 +12,17 @@ export declare class Visual implements IVisual {
     private host;
     private selectionManager;
     private currentActiveFilter;
-    private cachedBusinessDataString;
     private cachedBaseSystemPromptString;
     private cachedCustomSystemPromptString;
     private cachedInstructionsString;
+    private cachedGrandTotalTextString;
     private cachedQuickCommandsList;
     private cachedGlobalConfig;
     private cachedFilterMap;
+    private cachedRawData;
+    private cachedDimCols;
+    private cachedMetricCols;
+    private cachedBlacklistCols;
     private settings;
     constructor(options: VisualConstructorOptions);
     update(options: VisualUpdateOptions): void;

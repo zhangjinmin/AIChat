@@ -24,22 +24,27 @@ export class Visual implements IVisual {
     private selectionManager: ISelectionManager;
     private currentActiveFilter: string | null = null;
 
-    private cachedBusinessDataString: string = "暂无数据";
     private cachedBaseSystemPromptString: string = "";
     private cachedCustomSystemPromptString: string = "";
     private cachedInstructionsString: string = "";
+    private cachedGrandTotalTextString: string = ""; // 🌟 新增：大盘总计播报缓存
     private cachedQuickCommandsList: QuickCommand[] = [];
     private cachedGlobalConfig: any = null; 
     private cachedFilterMap: { [key: string]: ISelectionId[] } = {};
+    
+    private cachedRawData: any[] = [];
+    private cachedDimCols: string[] = [];
+    private cachedMetricCols: string[] = [];
+    private cachedBlacklistCols: string[] = []; 
 
     private settings = {
         aiConfig: {
-            baseUrl: "", 
+            baseUrl: "https://api.longcat.chat/openai/v1", 
             apiKey: "",
-            modelName: ""
+            modelName: "LongCat-Flash-Chat"
         },
         uiConfig: {
-            botName: "AI分析助手",
+            botName: "分析助手",
             themeColor: "#0F62FE",
             showAutoInsight: true,
             autoInsightName: "自动洞察",
@@ -50,6 +55,7 @@ export class Visual implements IVisual {
             enableDaxCopilot: true,
             enableDebugMode: false,
             defaultPrivacyMode: "semi_text",
+            allowInteractiveDims: true, 
             restrictDomain: true
         }
     };
@@ -85,14 +91,18 @@ export class Visual implements IVisual {
                 const dataView = options.dataViews[0];
                 this.parseSettings(dataView);
 
-                if (isDataUpdate || this.cachedBusinessDataString === "暂无数据") {
+                if (isDataUpdate || this.cachedRawData.length === 0) {
                     
                     this.cachedFilterMap = {};
                     this.cachedQuickCommandsList = [];
-                    this.cachedBusinessDataString = "暂无数据";
-                    this.cachedInstructionsString = "";
                     this.cachedCustomSystemPromptString = "";
+                    this.cachedInstructionsString = "";
+                    this.cachedGrandTotalTextString = ""; // 🌟 重置缓存
                     this.cachedGlobalConfig = null; 
+                    this.cachedRawData = [];
+                    this.cachedDimCols = [];
+                    this.cachedMetricCols = [];
+                    this.cachedBlacklistCols = [];
                     
                     this.cachedBaseSystemPromptString = `你是一位专业的数据分析专家。请根据提供的业务数据回答问题。
 
@@ -107,22 +117,9 @@ export class Visual implements IVisual {
 
 🚨 JSON 严格规范 (极度重要)：
 1. 必须包含 "data" 数组，把你计算出的实际数据对象完整填入其中！绝对不能留空！
-2. 绝不可以有任何 // 注释 或 多余的逗号！必须是标准 JSON！
-3. X轴键名强制使用 "name"，数值键名强制使用 "value"。所有字符串必须使用双引号！
-
-标准格式模板演示：
-\`\`\`chart
-{
-  "chartType": "horizontalBar",
-  "series": [
-    { "name": "销售额", "dataKey": "value", "type": "bar" }
-  ],
-  "data": [
-    { "name": "某超长名称门店", "value": 1000 },
-    { "name": "另一家门店", "value": 800 }
-  ]
-}
-\`\`\`
+2. 代码块的语言声明必须是 \`\`\`chart （绝不能写成 \`\`\`json）！
+3. 绝不可以有任何 // 注释 或 多余的逗号！必须是标准 JSON！
+4. X轴键名强制使用 "name"，数值键名强制使用 "value"。所有字符串必须使用双引号！
 
 【重点指令：深度联动筛选】
 当需要联动过滤时，插入行内代码 \`filter:条件\`。跨维度(且)用【空格】，同维度(或)用【逗号】。`;
@@ -132,27 +129,36 @@ export class Visual implements IVisual {
                         const rows = dataView.table.rows;
 
                         let promptColIndices: number[] = [];
-                        let businessColIndices: number[] = [];
                         let quickCommandIndices: number[] = [];
                         let instructionsColIndices: number[] = [];
+                        let grandTotalColIndices: number[] = []; // 🌟 新增：捕获大盘总计
                         let globalConfigColIndex: number = -1; 
+                        
+                        let dimIndices: number[] = [];
+                        let metricIndices: number[] = [];
+                        let blacklistIndices: number[] = [];
 
                         columns.forEach((col, index) => {
-                            if (col.roles && col.roles["systemPrompt"]) promptColIndices.push(index);
-                            if (col.roles && col.roles["businessData"]) businessColIndices.push(index);
-                            if (col.roles && col.roles["quickCommands"]) quickCommandIndices.push(index);
-                            if (col.roles && col.roles["instructions"]) instructionsColIndices.push(index);
-                            if (col.roles && col.roles["globalConfig"]) globalConfigColIndex = index; 
+                            if (col.roles) {
+                                if (col.roles["systemPrompt"]) promptColIndices.push(index);
+                                if (col.roles["quickCommands"]) quickCommandIndices.push(index);
+                                if (col.roles["instructions"]) instructionsColIndices.push(index);
+                                if (col.roles["grandTotalText"]) grandTotalColIndices.push(index); // 🌟 捕获
+                                if (col.roles["globalConfig"]) globalConfigColIndex = index; 
+                                if (col.roles["dimensions"]) { dimIndices.push(index); this.cachedDimCols.push(col.displayName); }
+                                if (col.roles["metrics"]) { metricIndices.push(index); this.cachedMetricCols.push(col.displayName); }
+                                if (col.roles["privacyBlacklist"]) {
+                                    blacklistIndices.push(index);
+                                    this.cachedBlacklistCols.push(col.displayName);
+                                }
+                            }
                         });
 
                         if (globalConfigColIndex !== -1 && rows.length > 0) {
                             const val = rows[0][globalConfigColIndex];
                             if (val !== null && val !== undefined) {
-                                try {
-                                    this.cachedGlobalConfig = JSON.parse(val.toString());
-                                } catch (e) {
-                                    console.warn("⚠️ 全局配置 JSON 解析失败, 将自动回退使用右侧格式面板设置", e);
-                                }
+                                try { this.cachedGlobalConfig = JSON.parse(val.toString()); } 
+                                catch (e) { console.warn("全局配置解析失败", e); }
                             }
                         }
 
@@ -163,6 +169,14 @@ export class Visual implements IVisual {
                                     this.cachedInstructionsString = val.toString();
                                 }
                             });
+                        }
+
+                        // 🌟 提取大盘总计播报文本
+                        if (grandTotalColIndices.length > 0 && rows.length > 0) {
+                            const val = rows[0][grandTotalColIndices[0]];
+                            if (val !== null && val !== undefined) {
+                                this.cachedGrandTotalTextString = val.toString();
+                            }
                         }
 
                         if (promptColIndices.length > 0 && rows.length > 0) {
@@ -189,41 +203,43 @@ export class Visual implements IVisual {
                             });
                         }
 
-                        if (businessColIndices.length > 0 && rows.length > 0) {
-                            const headers = businessColIndices.map(idx => columns[idx].displayName).join(" | ");
-                            const separator = businessColIndices.map(() => "---").join(" | ");
-                            
-                            const dataRows = rows.map((row, rowIndex) => {
+                        if ((dimIndices.length > 0 || metricIndices.length > 0) && rows.length > 0) {
+                            rows.forEach((row, rowIndex) => {
                                 let rowSelectionId: ISelectionId = null;
                                 try {
-                                    rowSelectionId = this.host.createSelectionIdBuilder()
-                                        .withTable(dataView.table, rowIndex)
-                                        .createSelectionId();
-                                } catch (e) {
-                                    console.warn("生成 SelectionId 失败", e);
-                                }
+                                    rowSelectionId = this.host.createSelectionIdBuilder().withTable(dataView.table, rowIndex).createSelectionId();
+                                } catch (e) {}
 
-                                if (rowSelectionId) {
-                                    businessColIndices.forEach(idx => {
-                                        const val = row[idx];
-                                        if (val !== null && val !== undefined) {
-                                            const strVal = val.toString().trim();
-                                            if (!this.cachedFilterMap[strVal]) { this.cachedFilterMap[strVal] = []; }
-                                            this.cachedFilterMap[strVal].push(rowSelectionId);
-                                        }
-                                    });
-                                }
-
-                                return businessColIndices.map(idx => {
+                                let rowObj: any = {};
+                                
+                                dimIndices.forEach(idx => {
+                                    const colName = columns[idx].displayName;
                                     const val = row[idx];
-                                    if (val === null || val === undefined) return "";
-                                    if (val instanceof Date) return val.toLocaleDateString();
-                                    if (typeof val === "number") return val.toLocaleString(); 
-                                    return val.toString();
-                                }).join(" | ");
-                            }).join("\n");
+                                    const strVal = val !== null && val !== undefined ? val.toString().trim() : "(空)";
+                                    rowObj[colName] = strVal;
 
-                            this.cachedBusinessDataString = `| ${headers} |\n| ${separator} |\n${dataRows.split('\n').map(r => `| ${r} |`).join('\n')}`;
+                                    if (rowSelectionId && strVal !== "(空)") {
+                                        if (!this.cachedFilterMap[strVal]) this.cachedFilterMap[strVal] = [];
+                                        this.cachedFilterMap[strVal].push(rowSelectionId);
+                                    }
+                                });
+
+                                metricIndices.forEach(idx => {
+                                    const colName = columns[idx].displayName;
+                                    const val = row[idx];
+                                    rowObj[colName] = val !== null && val !== undefined ? Number(val) : 0;
+                                });
+
+                                blacklistIndices.forEach(idx => {
+                                    const colName = columns[idx].displayName;
+                                    if (rowObj[colName] === undefined) {
+                                        const val = row[idx];
+                                        rowObj[colName] = val !== null && val !== undefined ? val.toString().trim() : "(空)";
+                                    }
+                                });
+
+                                this.cachedRawData.push(rowObj);
+                            });
                         }
                     }
                 }
@@ -249,9 +265,7 @@ export class Visual implements IVisual {
                     if (finalIds === null) {
                         finalIds = groupIds;
                     } else {
-                        finalIds = finalIds.filter(id1 => 
-                            groupIds.some(id2 => ((id2 as any).equals(id1)))
-                        );
+                        finalIds = finalIds.filter(id1 => groupIds.some(id2 => ((id2 as any).equals(id1))));
                     }
                 }
 
@@ -266,13 +280,9 @@ export class Visual implements IVisual {
 
                 if (finalIds && finalIds.length > 0) {
                     if (this.currentActiveFilter === trimmedName) {
-                        this.selectionManager.clear().then(() => {
-                            this.currentActiveFilter = null;
-                        });
+                        this.selectionManager.clear().then(() => { this.currentActiveFilter = null; });
                     } else {
-                        this.selectionManager.select(finalIds, false).then(() => {
-                            this.currentActiveFilter = trimmedName; 
-                        });
+                        this.selectionManager.select(finalIds, false).then(() => { this.currentActiveFilter = trimmedName; });
                     }
                 }
             };
@@ -284,25 +294,30 @@ export class Visual implements IVisual {
             const props: ChatProps = {
                 baseSystemPrompt: this.cachedBaseSystemPromptString,
                 customSystemPrompt: this.cachedCustomSystemPromptString,
-                businessData: this.cachedBusinessDataString,
+                grandTotalText: this.cachedGrandTotalTextString, // 🌟 传递给React组件
+                
+                rawTableData: this.cachedRawData,
+                dimensionCols: this.cachedDimCols,
+                metricCols: this.cachedMetricCols,
+                blacklistCols: this.cachedBlacklistCols, 
+                
                 quickCommands: this.cachedQuickCommandsList,
-                instructions: this.cachedInstructionsString,
+                instructions: this.cachedInstructionsString, // 🌟 确保此处安全传递
                 
                 baseUrl: activeBaseUrl,
                 apiKey: activeApiKey,
                 modelName: activeModelName,
-                
                 botName: this.settings.uiConfig.botName,
                 themeColor: this.settings.uiConfig.themeColor,
                 showAutoInsight: this.settings.uiConfig.showAutoInsight,
                 autoInsightName: this.settings.uiConfig.autoInsightName,
                 autoInsightPrompt: this.settings.uiConfig.autoInsightPrompt,
                 onFilter: handleFilter,
-                
                 enableDataInsight: this.settings.moduleSettings.enableDataInsight,
                 enableDaxCopilot: this.settings.moduleSettings.enableDaxCopilot,
                 enableDebugMode: this.settings.moduleSettings.enableDebugMode,
                 defaultPrivacyMode: this.settings.moduleSettings.defaultPrivacyMode as any,
+                allowInteractiveDims: this.settings.moduleSettings.allowInteractiveDims, 
                 restrictDomain: this.settings.moduleSettings.restrictDomain
             };
 
@@ -350,6 +365,7 @@ export class Visual implements IVisual {
             if (o.enableDaxCopilot !== undefined) this.settings.moduleSettings.enableDaxCopilot = Boolean(o.enableDaxCopilot);
             if (o.enableDebugMode !== undefined) this.settings.moduleSettings.enableDebugMode = Boolean(o.enableDebugMode);
             if (o.defaultPrivacyMode !== undefined) this.settings.moduleSettings.defaultPrivacyMode = String(o.defaultPrivacyMode);
+            if (o.allowInteractiveDims !== undefined) this.settings.moduleSettings.allowInteractiveDims = Boolean(o.allowInteractiveDims);
             if (o.restrictDomain !== undefined) this.settings.moduleSettings.restrictDomain = Boolean(o.restrictDomain);
         }
     }
