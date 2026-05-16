@@ -27,7 +27,7 @@ export class Visual implements IVisual {
     private cachedBaseSystemPromptString: string = "";
     private cachedCustomSystemPromptString: string = "";
     private cachedInstructionsString: string = "";
-    private cachedGrandTotalTextString: string = ""; // 🌟 新增：大盘总计播报缓存
+    private cachedGrandTotalTextString: string = ""; 
     private cachedQuickCommandsList: QuickCommand[] = [];
     private cachedGlobalConfig: any = null; 
     private cachedFilterMap: { [key: string]: ISelectionId[] } = {};
@@ -56,6 +56,7 @@ export class Visual implements IVisual {
             enableDebugMode: false,
             defaultPrivacyMode: "semi_text",
             allowInteractiveDims: true, 
+            disableAggregation: false, // 🌟 新增默认状态
             restrictDomain: true
         }
     };
@@ -97,7 +98,7 @@ export class Visual implements IVisual {
                     this.cachedQuickCommandsList = [];
                     this.cachedCustomSystemPromptString = "";
                     this.cachedInstructionsString = "";
-                    this.cachedGrandTotalTextString = ""; // 🌟 重置缓存
+                    this.cachedGrandTotalTextString = ""; 
                     this.cachedGlobalConfig = null; 
                     this.cachedRawData = [];
                     this.cachedDimCols = [];
@@ -131,7 +132,7 @@ export class Visual implements IVisual {
                         let promptColIndices: number[] = [];
                         let quickCommandIndices: number[] = [];
                         let instructionsColIndices: number[] = [];
-                        let grandTotalColIndices: number[] = []; // 🌟 新增：捕获大盘总计
+                        let grandTotalColIndices: number[] = []; 
                         let globalConfigColIndex: number = -1; 
                         
                         let dimIndices: number[] = [];
@@ -143,7 +144,7 @@ export class Visual implements IVisual {
                                 if (col.roles["systemPrompt"]) promptColIndices.push(index);
                                 if (col.roles["quickCommands"]) quickCommandIndices.push(index);
                                 if (col.roles["instructions"]) instructionsColIndices.push(index);
-                                if (col.roles["grandTotalText"]) grandTotalColIndices.push(index); // 🌟 捕获
+                                if (col.roles["grandTotalText"]) grandTotalColIndices.push(index); 
                                 if (col.roles["globalConfig"]) globalConfigColIndex = index; 
                                 if (col.roles["dimensions"]) { dimIndices.push(index); this.cachedDimCols.push(col.displayName); }
                                 if (col.roles["metrics"]) { metricIndices.push(index); this.cachedMetricCols.push(col.displayName); }
@@ -171,7 +172,6 @@ export class Visual implements IVisual {
                             });
                         }
 
-                        // 🌟 提取大盘总计播报文本
                         if (grandTotalColIndices.length > 0 && rows.length > 0) {
                             const val = rows[0][grandTotalColIndices[0]];
                             if (val !== null && val !== undefined) {
@@ -294,7 +294,7 @@ export class Visual implements IVisual {
             const props: ChatProps = {
                 baseSystemPrompt: this.cachedBaseSystemPromptString,
                 customSystemPrompt: this.cachedCustomSystemPromptString,
-                grandTotalText: this.cachedGrandTotalTextString, // 🌟 传递给React组件
+                grandTotalText: this.cachedGrandTotalTextString, 
                 
                 rawTableData: this.cachedRawData,
                 dimensionCols: this.cachedDimCols,
@@ -302,7 +302,7 @@ export class Visual implements IVisual {
                 blacklistCols: this.cachedBlacklistCols, 
                 
                 quickCommands: this.cachedQuickCommandsList,
-                instructions: this.cachedInstructionsString, // 🌟 确保此处安全传递
+                instructions: this.cachedInstructionsString, 
                 
                 baseUrl: activeBaseUrl,
                 apiKey: activeApiKey,
@@ -318,6 +318,7 @@ export class Visual implements IVisual {
                 enableDebugMode: this.settings.moduleSettings.enableDebugMode,
                 defaultPrivacyMode: this.settings.moduleSettings.defaultPrivacyMode as any,
                 allowInteractiveDims: this.settings.moduleSettings.allowInteractiveDims, 
+                disableAggregation: this.settings.moduleSettings.disableAggregation, // 🌟 传入新属性
                 restrictDomain: this.settings.moduleSettings.restrictDomain
             };
 
@@ -366,6 +367,7 @@ export class Visual implements IVisual {
             if (o.enableDebugMode !== undefined) this.settings.moduleSettings.enableDebugMode = Boolean(o.enableDebugMode);
             if (o.defaultPrivacyMode !== undefined) this.settings.moduleSettings.defaultPrivacyMode = String(o.defaultPrivacyMode);
             if (o.allowInteractiveDims !== undefined) this.settings.moduleSettings.allowInteractiveDims = Boolean(o.allowInteractiveDims);
+            if (o.disableAggregation !== undefined) this.settings.moduleSettings.disableAggregation = Boolean(o.disableAggregation); // 🌟 解析新属性
             if (o.restrictDomain !== undefined) this.settings.moduleSettings.restrictDomain = Boolean(o.restrictDomain);
         }
     }

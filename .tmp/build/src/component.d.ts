@@ -27,6 +27,7 @@ export interface ChatProps {
     enableDebugMode?: boolean;
     defaultPrivacyMode: "off" | "semi_text" | "full_text" | "strict";
     allowInteractiveDims: boolean;
+    disableAggregation?: boolean;
     restrictDomain?: boolean;
 }
 export declare const ChatApp: React.FC<ChatProps>;

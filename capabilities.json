@@ -94,6 +94,11 @@
           "description": "开启后用户可自由勾选下钻维度；关闭则面板只读，强制按默认最高颗粒度传输",
           "type": { "bool": true }
         },
+        "disableAggregation": {
+          "displayName": "禁用本地数据聚合 (直传明细)",
+          "description": "开启后，跳过维度折叠，直接将所有明细行原汁原味发送给大模型（适合MD单品排行分析）。注：数据量极大时可能导致Token超限",
+          "type": { "bool": true }
+        },
         "restrictDomain": {
           "displayName": "启用 闲聊防浪导护栏",
           "description": "开启后，AI 将闪电拒绝回答与当前业务无关的问题",

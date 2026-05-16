@@ -14,10 +14,10 @@ export interface QuickCommand { name: string; prompt: string; }
 
 export interface ChatProps {
     baseSystemPrompt: string; customSystemPrompt: string; 
-    grandTotalText?: string; // 🌟 接收大盘总计
+    grandTotalText?: string; 
     rawTableData: any[]; dimensionCols: string[]; metricCols: string[]; blacklistCols: string[];
     quickCommands: QuickCommand[];
-    instructions?: string; // 🌟 完美保留
+    instructions?: string; 
     baseUrl: string; apiKey: string; modelName: string; 
     botName: string; themeColor: string; showAutoInsight: boolean;
     autoInsightName: string; autoInsightPrompt: string;
@@ -27,6 +27,7 @@ export interface ChatProps {
     enableDebugMode?: boolean;
     defaultPrivacyMode: "off" | "semi_text" | "full_text" | "strict";
     allowInteractiveDims: boolean;
+    disableAggregation?: boolean; // 🌟 接收是否禁用聚合的指令
     restrictDomain?: boolean;
 }
 
@@ -434,10 +435,11 @@ export const ChatApp: React.FC<ChatProps> = (chatProps) => {
                     const dbg = JSON.parse(content);
                     const cmpRate = dbg.rawRows > 0 ? ((1 - dbg.aggRows / dbg.rawRows) * 100).toFixed(1) : "0";
 
+                    // 🌟 修改：显示出是否已禁用本地聚合的逻辑
                     const provenanceBadge = (
                         <div style={{ fontSize: '12px', color: '#475569', display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: '8px', marginBottom: chatProps.enableDebugMode ? '10px' : '0', lineHeight: '1.5' }}>
                             <div style={{ flex: '1 1 auto', minWidth: '0', wordWrap: 'break-word' }}>
-                                <b>数据流转就绪：</b>提取 {dbg.rawRows} 行原始流水，根据设定的维度颗粒度，按需聚合为 {dbg.aggRows} 行送入大模型引擎。
+                                <b>数据流转就绪：</b>提取 {dbg.rawRows} 行原始流水，{chatProps.disableAggregation ? `已禁用聚合，直接将 ${dbg.aggRows} 行明细直传至大模型引擎。` : `根据设定的颗粒度，按需聚合为 ${dbg.aggRows} 行送入大模型引擎。`}
                             </div>
                             {isBlacklistTriggered && <div style={{ color: '#ef4444', backgroundColor: '#fef2f2', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', border: '1px solid #fca5a5' }}>🎯 列级黑名单拦截网激活</div>}
                             {privacyMode !== 'off' && <div style={{ color: '#10B981', backgroundColor: '#ecfdf5', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', border: '1px solid #a7f3d0' }}>🛡️ 数据护盾处理完成</div>}
@@ -451,7 +453,7 @@ export const ChatApp: React.FC<ChatProps> = (chatProps) => {
                             </summary>
                             <div style={{ marginTop: '12px', color: '#334155', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                 <div><div style={{fontWeight: 'bold', color: chatProps.themeColor}}>1. Agent 意图识别 (提取列):</div><div style={{marginLeft: '10px'}}>• 维度: {dbg.dims?.length > 0 ? dbg.dims.join(', ') : '未提取'}</div><div style={{marginLeft: '10px'}}>• 指标: {dbg.metrics?.length > 0 ? dbg.metrics.join(', ') : '未提取'}</div></div>
-                                <div><div style={{fontWeight: 'bold', color: chatProps.themeColor}}>2. 本地引擎聚合统计:</div><div style={{marginLeft: '10px'}}>• 原始数据明细: <b>{dbg.rawRows}</b> 行</div><div style={{marginLeft: '10px'}}>• 聚合后数据量: <b>{dbg.aggRows}</b> 行 <span style={{color: '#10B981', fontWeight: 'bold'}}>(数据压缩率: {cmpRate}%)</span></div></div>
+                                <div><div style={{fontWeight: 'bold', color: chatProps.themeColor}}>2. 本地引擎聚合统计:</div><div style={{marginLeft: '10px'}}>• 原始数据明细: <b>{dbg.rawRows}</b> 行</div><div style={{marginLeft: '10px'}}>• {chatProps.disableAggregation ? "禁用聚合，明细直传" : "聚合后数据量"}: <b>{dbg.aggRows}</b> 行 <span style={{color: '#10B981', fontWeight: 'bold'}}>(压缩率: {cmpRate}%)</span></div></div>
                                 {dbg.preview && (
                                     <div><div style={{fontWeight: 'bold', color: chatProps.themeColor}}>3. 发送给 AI 的数据预览 (展示真实传递给AI的映射值):</div>
                                         <div style={{ overflowX: 'auto' }}>
@@ -489,7 +491,7 @@ export const ChatApp: React.FC<ChatProps> = (chatProps) => {
             }
             return <code className={className} {...restProps}>{children}</code>;
         }
-    }), [chatProps.onFilter, chatProps.themeColor, activeMode, chatProps.enableDebugMode, privacyMode, isBlacklistTriggered, copyTextToClipboard]);
+    }), [chatProps.onFilter, chatProps.themeColor, activeMode, chatProps.enableDebugMode, privacyMode, isBlacklistTriggered, chatProps.disableAggregation, copyTextToClipboard]);
 
     const clearChat = () => { 
         if (activeMode === "data") setDataMessages([]); else setDaxMessages([]); 
@@ -575,7 +577,11 @@ export const ChatApp: React.FC<ChatProps> = (chatProps) => {
                     
                     const finalMetrics = validMetrics.length > 0 ? validMetrics : chatProps.metricCols;
                     
-                    const aggregatedData = localGroupBy(secureRawData, validDims, finalMetrics);
+                    // 🌟 核心逻辑：如果启用了禁用聚合，则直接直传
+                    const aggregatedData = chatProps.disableAggregation 
+                        ? secureRawData 
+                        : localGroupBy(secureRawData, validDims, finalMetrics);
+                        
                     const finalColumns = [...validDims, ...finalMetrics];
                     optimizedDataString = generateMarkdownTable(aggregatedData, finalColumns);
                     
@@ -588,7 +594,10 @@ export const ChatApp: React.FC<ChatProps> = (chatProps) => {
             }
 
             if (!debugInfoObj) {
-                const aggregatedData = localGroupBy(secureRawData, activeDims, chatProps.metricCols);
+                // 🌟 兜底逻辑同样适配禁用聚合
+                const aggregatedData = chatProps.disableAggregation 
+                    ? secureRawData 
+                    : localGroupBy(secureRawData, activeDims, chatProps.metricCols);
                 optimizedDataString = generateMarkdownTable(aggregatedData, [...activeDims, ...chatProps.metricCols]);
                 debugInfoObj = { dims: activeDims, metrics: chatProps.metricCols, rawRows: secureRawData.length, aggRows: aggregatedData.length, preview: aggregatedData.slice(0, 3) };
             }
@@ -608,7 +617,6 @@ export const ChatApp: React.FC<ChatProps> = (chatProps) => {
                 ? `\n${chatProps.customSystemPrompt}\n` 
                 : "";
 
-            // 🌟 大盘总计播报注入
             const grandTotalInjection = chatProps.grandTotalText 
                 ? `\n【全局大盘真实汇总（极度重要，分析时请绝对以此数据为准）】\n${chatProps.grandTotalText}\n` 
                 : "";
@@ -618,7 +626,7 @@ export const ChatApp: React.FC<ChatProps> = (chatProps) => {
 【动态交互与数据真理声明】
 你当前运行在 Power BI 中。当涉及具体的事实计算时，**必须且只能以本次下方提供的最新数据快照为准！**
 ${grandTotalInjection}
-### 当前为您准备的聚合后最新业务数据快照：
+### 当前为您准备的最新业务数据快照：
 ${optimizedDataString}`;
 
             let finalApiMessages = [
