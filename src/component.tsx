@@ -27,7 +27,7 @@ export interface ChatProps {
     enableDebugMode?: boolean;
     defaultPrivacyMode: "off" | "semi_text" | "full_text" | "strict";
     allowInteractiveDims: boolean;
-    disableAggregation?: boolean; // 🌟 接收是否禁用聚合的指令
+    disableAggregation?: boolean; 
     restrictDomain?: boolean;
 }
 
@@ -200,8 +200,8 @@ const AIChartRenderer = ({ config, themeColor }: { config: any, themeColor: stri
     const colorPalette = [themeColor, '#FF9800', '#10B981', '#E91E63', '#8B5CF6', '#00BCD4'];
 
     return (
-        <div style={{ width: '600px', maxWidth: '100%', overflowX: 'auto', marginTop: 15, marginBottom: 15, backgroundColor: '#ffffff', borderRadius: 8, border: '1px solid #e0e0e0', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', boxSizing: 'border-box' }}>
-            <div style={{ width: '100%', minWidth: 300, height: 320, padding: '15px 15px 5px 5px', boxSizing: 'border-box' }}>
+        <div style={{ width: '100%', marginTop: 15, marginBottom: 15, backgroundColor: '#ffffff', borderRadius: 8, border: '1px solid #e2e8f0', boxSizing: 'border-box', overflow: 'hidden' }}>
+            <div style={{ width: '100%', height: 320, padding: '15px 15px 5px 5px', boxSizing: 'border-box' }}>
                 <ResponsiveContainer width="100%" height="100%">
                     {chartType === 'pie' ? (
                         /* @ts-ignore */
@@ -825,12 +825,13 @@ ${optimizedDataString}`;
         <div className="chat-container" style={{ position: 'relative', display: 'flex', flexDirection: 'column', height: '100%' }}>
             <style>{`
                 .chat-container * {
-                    -webkit-font-smoothing: antialiased;
-                    -moz-osx-font-smoothing: grayscale;
+                    -webkit-font-smoothing: antialiased !important;
+                    -moz-osx-font-smoothing: grayscale !important;
+                    text-rendering: optimizeLegibility !important;
                 }
                 .chat-messages {
-                    transform: translateZ(0); 
-                    backface-visibility: hidden;
+                    contain: paint layout;
+                    transform: scale(1);
                 }
             `}</style>
             

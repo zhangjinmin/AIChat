@@ -39,9 +39,9 @@ export class Visual implements IVisual {
 
     private settings = {
         aiConfig: {
-            baseUrl: "https://api.longcat.chat/openai/v1", 
+            baseUrl: "", 
             apiKey: "",
-            modelName: "LongCat-Flash-Chat"
+            modelName: ""
         },
         uiConfig: {
             botName: "分析助手",

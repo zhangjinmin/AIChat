@@ -4,7 +4,7 @@
     "displayName": "AIChatVisual",
     "guid": "aIChatVisual0333A750533B4345A711681B3299E8FC",
     "visualClassName": "Visual",
-    "version": "2.6.0.0",
+    "version": "2.6.3.0",
     "description": "基于大模型的 Power BI 智能分析助手",
     "supportUrl": "https://github.com/zhangjinmin",
     "gitHubUrl": "https://github.com/zhangjinmin"
